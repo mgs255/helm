@@ -17,8 +17,8 @@ limitations under the License.
 package repo // import "helm.sh/helm/v3/pkg/repo"
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -225,9 +225,12 @@ func FindChartInAuthAndTLSRepoURL(repoURL, username, password, chartName, chartV
 func FindChartInAuthAndTLSAndPassRepoURL(repoURL, username, password, chartName, chartVersion, certFile, keyFile, caFile string, insecureSkipTLSverify, passCredentialsAll bool, getters getter.Providers) (string, error) {
 
 	// Download and write the index file to a temporary location
-	buf := make([]byte, 20)
-	rand.Read(buf)
-	name := strings.ReplaceAll(base64.StdEncoding.EncodeToString(buf), "/", "-")
+	sha := sha1.Sum([]byte(repoURL))
+	name := hex.EncodeToString(sha[:])
+	//name := hsha1;
+	//buf := make([]byte, 20)
+	//rand.Read(buf)
+	//name := strings.ReplaceAll(base64.StdEncoding.EncodeToString(hsha1), "/", "-")
 
 	c := Entry{
 		URL:                   repoURL,
@@ -244,6 +247,8 @@ func FindChartInAuthAndTLSAndPassRepoURL(repoURL, username, password, chartName,
 	if err != nil {
 		return "", err
 	}
+
+	//os.Stat()
 	idx, err := r.DownloadIndexFile()
 	if err != nil {
 		return "", errors.Wrapf(err, "looks like %q is not a valid chart repository or cannot be reached", repoURL)

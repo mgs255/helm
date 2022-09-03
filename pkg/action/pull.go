@@ -42,6 +42,7 @@ type Pull struct {
 
 	Devel       bool
 	Untar       bool
+	Cache       bool
 	VerifyLater bool
 	UntarDir    string
 	DestDir     string
@@ -95,6 +96,7 @@ func (p *Pull) Run(chartRef string) (string, error) {
 		RegistryClient:   p.cfg.RegistryClient,
 		RepositoryConfig: p.Settings.RepositoryConfig,
 		RepositoryCache:  p.Settings.RepositoryCache,
+		LocalCache:       p.Cache,
 	}
 
 	if registry.IsOCI(chartRef) {

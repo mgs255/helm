@@ -17,6 +17,7 @@ package downloader
 
 import (
 	"fmt"
+
 	"io"
 	"net/url"
 	"os"
@@ -73,6 +74,7 @@ type ChartDownloader struct {
 	RegistryClient   *registry.Client
 	RepositoryConfig string
 	RepositoryCache  string
+	LocalCache       bool
 }
 
 // DownloadTo retrieves a chart. Depending on the settings, it may also download a provenance file.
@@ -92,6 +94,20 @@ func (c *ChartDownloader) DownloadTo(ref, version, dest string) (string, *proven
 		return "", nil, err
 	}
 
+	name := filepath.Base(u.Path)
+	destfile := filepath.Join(dest, name)
+	localChart := filepath.Join(c.RepositoryCache, name)
+
+	if c.LocalCache {
+		if fi, err := os.Stat(localChart); err == nil && !fi.IsDir() {
+			err := fileutil.CopyFile(localChart, destfile)
+			if err == nil {
+				fmt.Fprintf(c.Out, "Using locally cached verion %s\n", localChart)
+				return destfile, nil, err
+			}
+		}
+	}
+
 	g, err := c.Getters.ByScheme(u.Scheme)
 	if err != nil {
 		return "", nil, err
@@ -102,13 +118,11 @@ func (c *ChartDownloader) DownloadTo(ref, version, dest string) (string, *proven
 		return "", nil, err
 	}
 
-	name := filepath.Base(u.Path)
 	if u.Scheme == registry.OCIScheme {
 		idx := strings.LastIndexByte(name, ':')
 		name = fmt.Sprintf("%s-%s.tgz", name[:idx], name[idx+1:])
 	}
 
-	destfile := filepath.Join(dest, name)
 	if err := fileutil.AtomicWriteFile(destfile, data, 0644); err != nil {
 		return destfile, nil, err
 	}
@@ -138,6 +152,14 @@ func (c *ChartDownloader) DownloadTo(ref, version, dest string) (string, *proven
 			}
 		}
 	}
+
+	if c.LocalCache {
+		err := fileutil.CopyFile(destfile, localChart)
+		if err == nil {
+			fmt.Fprintf(c.Out, "Caching chart: %s\n", localChart)
+		}
+	}
+
 	return destfile, ver, nil
 }
 

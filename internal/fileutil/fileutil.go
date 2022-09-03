@@ -48,3 +48,7 @@ func AtomicWriteFile(filename string, reader io.Reader, mode os.FileMode) error 
 
 	return fs.RenameWithFallback(tempName, filename)
 }
+
+func CopyFile(src, dest string) error {
+	return fs.CopyFile(src, dest)
+}
